@@ -44,27 +44,27 @@ datos_generales = cargar_datos_generales()
 
 st.title("🛣️ Captura de Rutas - Lincoln")
 
-st.header("⚙️ General data")
-col1, col2 = st.columns(2)
+with st.expander("⚙️ General data", expanded=False):
+    col1, col2 = st.columns(2)
 
-with col1:
-    datos_generales["Operator pay per mile"] = st.number_input("Operator pay per mile", value=datos_generales["Operator pay per mile"])
-    datos_generales["Operator pay per empty mile"] = st.number_input("Operator pay per empty mile", value=datos_generales["Operator pay per empty mile"])
-    datos_generales["Team pay per mile"] = st.number_input("Team pay per mile", value=datos_generales["Team pay per mile"])
-    datos_generales["Team pay per empty mile"] = st.number_input("Team pay per empty mile", value=datos_generales["Team pay per empty mile"])
-    datos_generales["Operator bonus"] = st.number_input("Operator bonus", value=datos_generales["Operator bonus"])
-    datos_generales["Team bonus"] = st.number_input("Team bonus", value=datos_generales["Team bonus"])
-    datos_generales["Truck performance"] = st.number_input("Truck performance", value=datos_generales["Truck performance"])
+    with col1:
+        datos_generales["Operator pay per mile"] = st.number_input("Operator pay per mile", value=datos_generales["Operator pay per mile"])
+        datos_generales["Operator pay per empty mile"] = st.number_input("Operator pay per empty mile", value=datos_generales["Operator pay per empty mile"])
+        datos_generales["Team pay per mile"] = st.number_input("Team pay per mile", value=datos_generales["Team pay per mile"])
+        datos_generales["Team pay per empty mile"] = st.number_input("Team pay per empty mile", value=datos_generales["Team pay per empty mile"])
+        datos_generales["Operator bonus"] = st.number_input("Operator bonus", value=datos_generales["Operator bonus"])
+        datos_generales["Team bonus"] = st.number_input("Team bonus", value=datos_generales["Team bonus"])
+        datos_generales["Truck performance"] = st.number_input("Truck performance", value=datos_generales["Truck performance"])
+        datos_generales["Diesel"] = st.number_input("Diesel", value=datos_generales["Diesel"])
 
-with col2:
-    datos_generales["Diesel"] = st.number_input("Diesel", value=datos_generales["Diesel"])
-    datos_generales["Fuel"] = st.number_input("Fuel", value=datos_generales["Fuel"])
-    datos_generales["Dollar exchange rate"] = st.number_input("Dollar exchange rate", value=datos_generales["Dollar exchange rate"])
-    datos_generales["Loaded crossborder payment"] = st.number_input("Loaded crossborder payment", value=datos_generales["Loaded crossborder payment"])
-    datos_generales["Empty crossborder payment"] = st.number_input("Empty crossborder payment", value=datos_generales["Empty crossborder payment"])
-    datos_generales["Operator pay mex"] = st.number_input("Operator pay mex", value=datos_generales["Operator pay mex"])
-    datos_generales["Team pay mex"] = st.number_input("Team pay mex", value=datos_generales["Team pay mex"])
-    datos_generales["Operator bonus mex"] = st.number_input("Operator bonus mex", value=datos_generales["Operator bonus mex"])
+    with col2:
+        datos_generales["Fuel"] = st.number_input("Fuel", value=datos_generales["Fuel"])
+        datos_generales["Dollar exchange rate"] = st.number_input("Dollar exchange rate", value=datos_generales["Dollar exchange rate"])
+        datos_generales["Loaded crossborder payment"] = st.number_input("Loaded crossborder payment", value=datos_generales["Loaded crossborder payment"])
+        datos_generales["Empty crossborder payment"] = st.number_input("Empty crossborder payment", value=datos_generales["Empty crossborder payment"])
+        datos_generales["Operator pay mex"] = st.number_input("Operator pay mex", value=datos_generales["Operator pay mex"])
+        datos_generales["Team pay mex"] = st.number_input("Team pay mex", value=datos_generales["Team pay mex"])
+        datos_generales["Operator bonus mex"] = st.number_input("Operator bonus mex", value=datos_generales["Operator bonus mex"])
 
 st.header("📝 Route Capture Form")
 
