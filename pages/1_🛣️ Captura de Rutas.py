@@ -106,3 +106,145 @@ with st.form("formulario_ruta"):
             extras[campo] = st.number_input(campo, min_value=0.0, key=campo)
 
     boton_revisar = st.form_submit_button("🔎 Check route")
+    
+    def generar_nuevo_id():
+    data = supabase.table("Rutas_Lincoln").select("ID_Ruta").order("ID_Ruta", desc=True).limit(1).execute()
+    if data.data:
+        last_id = data.data[0]["ID_Ruta"]
+        num = int(last_id.replace("LIN", ""))
+        return f"LIN{num+1:06d}"
+    return "LIN000001"
+
+if boton_revisar:
+    tc = datos_generales["Dollar exchange rate"]
+    fuel_rate = datos_generales["Fuel"]
+    diesel_rate = datos_generales["Diesel"]
+    rendimiento = datos_generales["Truck performance"]
+
+    # Income
+    income_fuel_usa = fuel_rate * millas_usa
+    income_usa = (ingreso_milla * millas_usa)
+    if moneda_usa == "MXP":
+        income_usa *= tc
+    income_usa += income_fuel_usa
+
+    income_mex_total = ingreso_mex if moneda_mex == "USD" else ingreso_mex / tc
+    income_cruce_total = ingreso_cruce if moneda_ingreso_cruce == "USD" else ingreso_cruce / tc
+
+    # Salary
+    if modo_viaje == "Operator":
+        salary_usa = millas_usa * datos_generales["Operator pay per mile"] + \
+                     millas_vacias * datos_generales["Operator pay per empty mile"] + \
+                     datos_generales["Operator bonus"]
+        salary_mex = datos_generales["Operator pay mex"] + datos_generales["Operator bonus mex"]
+        pay_km = datos_generales["Operator pay per mile"]
+        pay_km_empty = datos_generales["Operator pay per empty mile"]
+        pay_mex = datos_generales["Operator pay mex"]
+    else:
+        salary_usa = (millas_usa * datos_generales["Team pay per mile"] + \
+                     millas_vacias * datos_generales["Team pay per empty mile"]) * 2 + \
+                     datos_generales["Team bonus"] * 2
+        salary_mex = datos_generales["Team pay mex"] * 2 + datos_generales["Operator bonus mex"] * 2
+        pay_km = datos_generales["Team pay per mile"]
+        pay_km_empty = datos_generales["Team pay per empty mile"]
+        pay_mex = datos_generales["Team pay mex"]
+
+    if mexican_line != "Propia":
+        salary_mex = 0
+
+    salary_cruce = 0
+    if tipo_cruce == "Propio":
+        salary_cruce = datos_generales["Loaded crossborder payment"] if tipo_carga_cruce == "Loaded" else datos_generales["Empty crossborder payment"]
+
+    total_salary = salary_usa + salary_mex + salary_cruce
+
+    # Diesel
+    diesel_usa = (millas_usa / rendimiento) * diesel_rate
+    diesel_mex = (millas_mex / rendimiento) * diesel_rate if mexican_line == "Propia" else 0
+    charge_fuel_usa = fuel_rate * millas_usa
+
+    # Extras
+    extras_total = sum(extras.values())
+
+    # Charges
+    charges_usa = salary_usa + diesel_usa + charge_fuel_usa
+    charges_mex = salary_mex + diesel_mex if mexican_line == "Propia" else cargo_mex
+    cargo_cruce_final = cargo_cruce if moneda_cargo_cruce == "USD" else cargo_cruce / tc
+
+    total_charges = charges_usa + charges_mex + extras_total + cargo_cruce_final
+    total_income = income_usa + income_mex_total + income_cruce_total
+    utilidad_bruta = total_income - total_charges
+    porcentaje_bruta = utilidad_bruta / total_income if total_income > 0 else 0
+    costos_indirectos = total_income * 0.35
+    utilidad_neta = utilidad_bruta - costos_indirectos
+    porcentaje_neta = utilidad_neta / total_income if total_income > 0 else 0
+
+    # Mostrar resumen por sección
+    with st.expander("📍 Summary USA"):
+        st.write(f"Operator salary USA: ${salary_usa:,.2f}")
+        st.write(f"Diesel USA: ${diesel_usa:,.2f}")
+        st.write(f"Fuel charge USA: ${charge_fuel_usa:,.2f}")
+        st.write(f"Total charges USA: ${charges_usa:,.2f}")
+        st.write(f"Total income USA: ${income_usa:,.2f}")
+
+    with st.expander("📍 Summary MEX"):
+        st.write(f"Operator salary MEX: ${salary_mex:,.2f}")
+        st.write(f"Diesel MEX: ${diesel_mex:,.2f}")
+        st.write(f"Mexican charge (if Filial/Externa): ${cargo_mex:,.2f}")
+        st.write(f"Total charges MEX: ${charges_mex:,.2f}")
+        st.write(f"Total income MEX: ${income_mex_total:,.2f}")
+
+    with st.expander("📍 General Summary"):
+        st.write(f"Crossborder income: ${income_cruce_total:,.2f}")
+        st.write(f"Crossborder charge: ${cargo_cruce_final:,.2f}")
+        st.write(f"Crossborder salary: ${salary_cruce:,.2f}")
+        st.write(f"Extras total: ${extras_total:,.2f}")
+        st.write(f"Total income: ${total_income:,.2f}")
+        st.write(f"Total charges: ${total_charges:,.2f}")
+        st.write(f"Gross profit: ${utilidad_bruta:,.2f} ({porcentaje_bruta:.2%})")
+        st.write(f"Indirect costs (35%): ${costos_indirectos:,.2f}")
+        st.write(f"Net profit: ${utilidad_neta:,.2f} ({porcentaje_neta:.2%})")
+
+    if st.button("✅ Save route"):
+        nuevo_id = generar_nuevo_id()
+        data_row = {
+            "ID_Ruta": nuevo_id,
+            "Date": str(fecha),
+            "Type_of_trip": tipo_viaje,
+            "Customer": cliente,
+            "Trip_mode": modo_viaje,
+            "Origin_USA": origen_usa,
+            "Destination_USA": destino_usa,
+            "Miles_USA": millas_usa,
+            "Miles_Empty": millas_vacias,
+            "Income_per_mile": ingreso_milla,
+            "Currency_USA": moneda_usa,
+            "Mexican_Line": mexican_line,
+            "Origin_MEX": origen_mex,
+            "Destination_MEX": destino_mex,
+            "Miles_MEX": millas_mex,
+            "Income_MEX": ingreso_mex,
+            "Charge_MEX": cargo_mex,
+            "Currency_MEX": moneda_mex,
+            "Type_of_crossborder": tipo_cruce,
+            "Load_type_crossborder": tipo_carga_cruce,
+            "Crossborder_income": ingreso_cruce,
+            "Currency_Crossborder": moneda_ingreso_cruce,
+            "Crossborder_charge": cargo_cruce,
+            "Currency_Crossborder_charge": moneda_cargo_cruce,
+            "Diesel": diesel_rate,
+            "Truck_performance": rendimiento,
+            "Dollar_exchange_rate": tc,
+            "Pay_KM_USA": pay_km,
+            "Pay_KM_empty_USA": pay_km_empty,
+            "Pay_MEX": pay_mex,
+            "Income_total": total_income,
+            "Charges_total": total_charges,
+            "Gross_profit": utilidad_bruta,
+            "Net_profit": utilidad_neta,
+            "Gross_margin": porcentaje_bruta,
+            "Net_margin": porcentaje_neta,
+            **extras
+        }
+        supabase.table("Rutas_Lincoln").insert(data_row).execute()
+        st.success(f"✅ Route saved with ID: {nuevo_id}")
