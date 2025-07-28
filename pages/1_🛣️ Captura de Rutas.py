@@ -175,7 +175,6 @@ with st.form("formulario_ruta"):
         costos_indirectos = total_income * 0.35
         utilidad_neta = utilidad_bruta - costos_indirectos
         porcentaje_neta = utilidad_neta / total_income if total_income > 0 else 0
-        if boton_revisar:
 
         # Al final guarda resultados
         st.session_state["mostrar_resumen"] = True
