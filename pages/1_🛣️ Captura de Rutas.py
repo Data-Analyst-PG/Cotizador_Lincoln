@@ -10,7 +10,7 @@ if "resultados_calculo" not in st.session_state:
 # --- CONFIGURACIÓN SUPABASE ---
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
-supabase: Client = create_client(url, key)
+supabase = create_client(url, key)
 
 # --- CARGAR DATOS GENERALES DESDE CSV ---
 @st.cache_data
