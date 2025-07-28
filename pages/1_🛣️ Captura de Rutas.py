@@ -111,6 +111,8 @@ with st.form("formulario_ruta"):
             extras[campo] = st.number_input(campo, min_value=0.0, key=campo)
 
     boton_revisar = st.form_submit_button("🔎 Check route")
+
+    if boton_revisar:
         tc = datos_generales["Dollar exchange rate"]
         fuel_rate = datos_generales["Fuel"]
         diesel_rate = datos_generales["Diesel"]
