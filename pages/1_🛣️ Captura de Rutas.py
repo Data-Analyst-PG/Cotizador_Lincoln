@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client, Client
+from supabase import create_client
 
 if "mostrar_resumen" not in st.session_state:
     st.session_state["mostrar_resumen"] = False
