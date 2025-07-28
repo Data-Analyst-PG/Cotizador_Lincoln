@@ -1,176 +1,108 @@
 import streamlit as st
-from supabase import create_client, Client
 import pandas as pd
+from supabase import create_client, Client
 
 # --- CONFIGURACIÓN SUPABASE ---
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(url, key)
 
-# --- CARGAR DATOS GENERALES ---
-datos_generales = pd.read_csv("datos_generales.csv").iloc[0]
-
-# --- GENERADOR ID_RUTA ---
-def generar_nuevo_id():
-    data = supabase.table("Rutas_Lincoln").select("ID_Ruta").order("ID_Ruta", desc=True).limit(1).execute()
-    if data.data:
-        last_id = data.data[0]["ID_Ruta"]
-        num = int(last_id.replace("LIN", ""))
-        return f"LIN{num+1:06d}"
-    return "LIN000001"
-
-# --- FORMULARIO ---
-st.title("🚛 Captura de Rutas - Lincoln")
-
-with st.form("form_ruta"):
-    fecha = st.date_input("Fecha")
-    tipo_viaje = st.selectbox("Tipo de viaje", ["NB", "PPNB", "SB", "PPSB", "DOMUSA", "DOMMEX"])
-    cliente = st.text_input("Cliente")
-    modo_viaje = st.selectbox("Modo de viaje", ["Operator", "Team"])
-
-    st.subheader("Segmento USA")
-    origen_usa = st.text_input("Origen USA")
-    destino_usa = st.text_input("Destino USA")
-    millas_usa = st.number_input("Millas USA", min_value=0.0)
-    millas_vacias = st.number_input("Millas Vacías", min_value=0.0)
-    ingreso_milla = st.number_input("Ingreso por milla", min_value=0.0)
-    moneda_usa = st.selectbox("Moneda USA", ["USD", "MXP"])
-
-    st.subheader("Segmento MEX")
-    mexican_line = st.selectbox("Mexican Line", ["Propia", "Filial/Externa"])
-    origen_mex = st.text_input("Origen MEX")
-    destino_mex = st.text_input("Destino MEX")
-    millas_mex = st.number_input("Millas MEX", min_value=0.0)
-    ingreso_mex = st.number_input("Ingreso MEX", min_value=0.0)
-    cargo_mex = st.number_input("Cargo MEX", min_value=0.0)
-    moneda_mex = st.selectbox("Moneda MEX", ["USD", "MXP"])
-
-    st.subheader("Cruce")
-    tipo_cruce = st.selectbox("Tipo de Cruce", ["Propio", "Filial/Externo"])
-    tipo_carga_cruce = st.selectbox("Tipo de carga cruce", ["Loaded", "Empty"])
-    ingreso_cruce = st.number_input("Ingreso cruce", min_value=0.0)
-    moneda_ingreso_cruce = st.selectbox("Moneda ingreso cruce", ["USD", "MXP"])
-    cargo_cruce = st.number_input("Cargo cruce", min_value=0.0)
-    moneda_cargo_cruce = st.selectbox("Moneda cargo cruce", ["USD", "MXP"])
-
-    st.subheader("Cargos Extras USA")
-    extras = {}
-    for campo in ["Fianzas", "Aditional Insurance", "Demoras/Detention", "Movimiento extraordinario",
-                  "Lumper fees", "Maniobras", "Loadlocks", "Lay over", "Gatas", "Accessories", "Guias"]:
-        extras[campo] = st.number_input(campo, min_value=0.0)
-
-    submitted = st.form_submit_button("Guardar Ruta")
-
-    if submitted:
-        # --- CONVERSIÓN MONEDA ---
-        tc = datos_generales["Dollar exchange rate"]
-        ingreso_fuel_usa = datos_generales["Fuel"] * millas_usa
-        ingreso_usa = (ingreso_milla * millas_usa)
-        ingreso_usa = ingreso_usa * tc if moneda_usa == "MXP" else ingreso_usa
-        ingreso_usa += ingreso_fuel_usa
-        ingreso_mex_total = ingreso_mex if moneda_mex == "USD" else ingreso_mex / tc
-        ingreso_cruce_total = ingreso_cruce if moneda_ingreso_cruce == "USD" else ingreso_cruce / tc
-
-        # --- SUELDO ---
-        if modo_viaje == "Operator":
-            sueldo_usa = millas_usa * datos_generales["Operator pay per mile"] + \
-                         millas_vacias * datos_generales["Operator pay per empty mile"] + \
-                         datos_generales["Operator bonus"]
-            sueldo_mex = datos_generales["Operator pay mex"] + datos_generales["Operator bonus mex"]
-            pago_km = datos_generales["Operator pay per mile"]
-            pago_km_empty = datos_generales["Operator pay per empty mile"]
-            pago_mex = datos_generales["Operator pay mex"]
-        else:
-            sueldo_usa = (millas_usa * datos_generales["Team pay per mile"] + \
-                         millas_vacias * datos_generales["Team pay per empty mile"]) * 2 + \
-                         datos_generales["Team bonus"] * 2
-            sueldo_mex = datos_generales["Team pay mex"] * 2 + datos_generales["Operator bonus mex"] * 2
-            pago_km = datos_generales["Team pay per mile"]
-            pago_km_empty = datos_generales["Team pay per empty mile"]
-            pago_mex = datos_generales["Team pay mex"]
-
-        if mexican_line != "Propia":
-            sueldo_mex = 0
-
-        sueldo_cruce = 0
-        if tipo_cruce == "Propio":
-            sueldo_cruce = datos_generales["Loaded crossborder payment"] if tipo_carga_cruce == "Loaded" \
-                else datos_generales["Empty crossborder payment"]
-
-        sueldo_total = sueldo_usa + sueldo_mex + sueldo_cruce
-
-        diesel_usa = (millas_usa / datos_generales["Truck performance"]) * datos_generales["Diesel"]
-        diesel_mex = (millas_mex / datos_generales["Truck performance"]) * datos_generales["Diesel"] if mexican_line == "Propia" else 0
-        charge_fuel_usa = datos_generales["Fuel"] * millas_usa
-
-        extras_total = sum(extras.values())
-        cargos_usa = sueldo_usa + diesel_usa + charge_fuel_usa
-        cargos_mex = sueldo_mex + diesel_mex if mexican_line == "Propia" else cargo_mex
-        cargo_cruce_final = cargo_cruce if moneda_cargo_cruce == "USD" else cargo_cruce / tc
-
-        total_cargos = cargos_usa + cargos_mex + extras_total + cargo_cruce_final
-        total_ingresos = ingreso_usa + ingreso_mex_total + ingreso_cruce_total
-        utilidad_bruta = total_ingresos - total_cargos
-        porcentaje_bruta = utilidad_bruta / total_ingresos if total_ingresos > 0 else 0
-        costos_indirectos = total_ingresos * 0.35
-        utilidad_neta = utilidad_bruta - costos_indirectos
-        porcentaje_neta = utilidad_neta / total_ingresos if total_ingresos > 0 else 0
-
-        nuevo_id = generar_nuevo_id()
-
-        # --- GUARDAR EN SUPABASE ---
-        ruta = {
-            "ID_Ruta": nuevo_id,
-            "Fecha": str(fecha),
-            "Tipo_Viaje": tipo_viaje,
-            "Cliente": cliente,
-            "Modo_Viaje": modo_viaje,
-            "Origen_USA": origen_usa,
-            "Destino_USA": destino_usa,
-            "Millas_USA": millas_usa,
-            "Millas_Vacias_USA": millas_vacias,
-            "Ingreso_por_Milla": ingreso_milla,
-            "Moneda_USA": moneda_usa,
-            "Mexican_Line": mexican_line,
-            "Origen_MEX": origen_mex,
-            "Destino_MEX": destino_mex,
-            "Millas_MEX": millas_mex,
-            "Ingreso_MEX": ingreso_mex,
-            "Cargo_MEX": cargo_mex,
-            "Moneda_MEX": moneda_mex,
-            "Tipo_Cruce": tipo_cruce,
-            "Tipo_Carga_Cruce": tipo_carga_cruce,
-            "Ingreso_Cruce": ingreso_cruce,
-            "Moneda_Ingreso_Cruce": moneda_ingreso_cruce,
-            "Cargo_Cruce": cargo_cruce,
-            "Moneda_Cargo_Cruce": moneda_cargo_cruce,
-            "Sueldo_USA": sueldo_usa,
-            "Sueldo_MEX": sueldo_mex,
-            "Sueldo_Cruce": sueldo_cruce,
-            "Diesel_USA": diesel_usa,
-            "Diesel_MEX": diesel_mex,
-            "Ingreso_USA_Total": ingreso_usa,
-            "Ingreso_MEX_Total": ingreso_mex_total,
-            "Ingreso_Cruce_Total": ingreso_cruce_total,
-            "Ingreso_Total": total_ingresos,
-            "Cargos_USA": cargos_usa,
-            "Cargos_MEX": cargos_mex,
-            "Cargos_Cruce": cargo_cruce_final,
-            "Total_Costos": total_cargos,
-            "Utilidad_Bruta": utilidad_bruta,
-            "Porcentaje_Utilidad_Bruta": porcentaje_bruta,
-            "Costos_Indirectos": costos_indirectos,
-            "Utilidad_Neta": utilidad_neta,
-            "Porcentaje_Utilidad_Neta": porcentaje_neta,
-            "Pago_KM_USA": pago_km,
-            "Pago_KM_empty_USA": pago_km_empty,
-            "Pago_MEX": pago_mex,
-            "Diesel": datos_generales["Diesel"],
-            "Truck_performance": datos_generales["Truck performance"],
-            "Dollar_exchange_rate": datos_generales["Dollar exchange rate"],
-            **extras
+# --- CARGAR DATOS GENERALES DESDE CSV ---
+@st.cache_data
+def cargar_datos_generales():
+    try:
+        return pd.read_csv("datos_generales.csv").iloc[0].to_dict()
+    except:
+        return {
+            "Operator pay per mile": 0.0,
+            "Operator pay per empty mile": 0.0,
+            "Team pay per mile": 0.0,
+            "Team pay per empty mile": 0.0,
+            "Operator bonus": 0.0,
+            "Team bonus": 0.0,
+            "Truck performance": 2.5,
+            "Diesel": 24.0,
+            "Fuel": 1.0,
+            "Dollar exchange rate": 18.0,
+            "Loaded crossborder payment": 300.0,
+            "Empty crossborder payment": 200.0,
+            "Operator pay mex": 1000.0,
+            "Team pay mex": 900.0,
+            "Operator bonus mex": 400.0
         }
 
-        supabase.table("Rutas_Lincoln").insert(ruta).execute()
-        st.success(f"✅ Ruta guardada con ID: {nuevo_id}")
+def guardar_datos_generales(data_dict):
+    df = pd.DataFrame([data_dict])
+    df.to_csv("datos_generales.csv", index=False)
 
+datos_generales = cargar_datos_generales()
+
+st.title("🛣️ Captura de Rutas - Lincoln")
+
+st.header("⚙️ General data")
+col1, col2 = st.columns(2)
+
+with col1:
+    datos_generales["Operator pay per mile"] = st.number_input("Operator pay per mile", value=datos_generales["Operator pay per mile"])
+    datos_generales["Operator pay per empty mile"] = st.number_input("Operator pay per empty mile", value=datos_generales["Operator pay per empty mile"])
+    datos_generales["Team pay per mile"] = st.number_input("Team pay per mile", value=datos_generales["Team pay per mile"])
+    datos_generales["Team pay per empty mile"] = st.number_input("Team pay per empty mile", value=datos_generales["Team pay per empty mile"])
+    datos_generales["Operator bonus"] = st.number_input("Operator bonus", value=datos_generales["Operator bonus"])
+    datos_generales["Team bonus"] = st.number_input("Team bonus", value=datos_generales["Team bonus"])
+    datos_generales["Truck performance"] = st.number_input("Truck performance", value=datos_generales["Truck performance"])
+
+with col2:
+    datos_generales["Diesel"] = st.number_input("Diesel", value=datos_generales["Diesel"])
+    datos_generales["Fuel"] = st.number_input("Fuel", value=datos_generales["Fuel"])
+    datos_generales["Dollar exchange rate"] = st.number_input("Dollar exchange rate", value=datos_generales["Dollar exchange rate"])
+    datos_generales["Loaded crossborder payment"] = st.number_input("Loaded crossborder payment", value=datos_generales["Loaded crossborder payment"])
+    datos_generales["Empty crossborder payment"] = st.number_input("Empty crossborder payment", value=datos_generales["Empty crossborder payment"])
+    datos_generales["Operator pay mex"] = st.number_input("Operator pay mex", value=datos_generales["Operator pay mex"])
+    datos_generales["Team pay mex"] = st.number_input("Team pay mex", value=datos_generales["Team pay mex"])
+    datos_generales["Operator bonus mex"] = st.number_input("Operator bonus mex",
+
+st.header("📝 Route Capture Form")
+
+with st.form("formulario_ruta"):
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fecha = st.date_input("Date")
+        tipo_viaje = st.selectbox("Type of trip", ["NB", "PPNB", "SB", "PPSB", "DOMUSA", "DOMMEX"])
+        cliente = st.text_input("Customer")
+        modo_viaje = st.selectbox("Trip mode", ["Operator", "Team"])
+        origen_usa = st.text_input("Origin USA")
+        destino_usa = st.text_input("Destination USA")
+        millas_usa = st.number_input("Miles USA", min_value=0.0)
+        millas_vacias = st.number_input("Miles Empty", min_value=0.0)
+        ingreso_milla = st.number_input("Income per mile", min_value=0.0)
+        moneda_usa = st.selectbox("Currency USA", ["USD", "MXP"])
+        ingreso_fuel_usa = datos_generales["Fuel"] * millas_usa
+
+    with col2:
+        mexican_line = st.selectbox("Mexican Line", ["Propia", "Filial/Externa"])
+        origen_mex = st.text_input("Origin MEX")
+        destino_mex = st.text_input("Destination MEX")
+        millas_mex = st.number_input("Miles MEX", min_value=0.0)
+        ingreso_mex = st.number_input("Income MEX", min_value=0.0)
+        cargo_mex = st.number_input("Charge MEX", min_value=0.0)
+        moneda_mex = st.selectbox("Currency MEX", ["USD", "MXP"])
+        tipo_cruce = st.selectbox("Type of crossborder", ["Propio", "Filial/Externo"])
+        tipo_carga_cruce = st.selectbox("Load type crossborder", ["Loaded", "Empty"])
+        ingreso_cruce = st.number_input("Crossborder income", min_value=0.0)
+        moneda_ingreso_cruce = st.selectbox("Currency Crossborder", ["USD", "MXP"])
+        cargo_cruce = st.number_input("Crossborder charge", min_value=0.0)
+        moneda_cargo_cruce = st.selectbox("Currency Crossborder charge", ["USD", "MXP"])
+
+    st.subheader("💵 Chargue Extras (USA)")
+    extras = {}
+    cols_extras = st.columns(3)
+    campos_extras = [
+        "Fianzas", "Aditional Insurance", "Demoras/Detention", "Movimiento extraordinario",
+        "Lumper fees", "Maniobras", "Loadlocks", "Lay over", "Gatas", "Accessories", "Guias"
+    ]
+    for idx, campo in enumerate(campos_extras):
+        with cols_extras[idx % 3]:
+            extras[campo] = st.number_input(campo, min_value=0.0, key=campo)
+
+    boton_revisar = st.form_submit_button("🔎 Check route")
