@@ -1,0 +1,54 @@
+import streamlit as st
+import hashlib
+import base64
+from supabase import create_client
+from PIL import Image
+
+
+# =========================
+# ✅ ENCABEZADO Y MENÚ
+# =========================
+
+# Ruta al logo
+LOGO_CLARO = "LicolnF Original.png"
+LOGO_OSCURO = "LicolnF White.png"
+
+@st.cache_data
+def image_to_base64(img_path):
+    with open(img_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode()
+
+logo_claro_b64 = image_to_base64(LOGO_CLARO)
+logo_oscuro_b64 = image_to_base64(LOGO_OSCURO)
+
+# Mostrar encabezado con logo dinámico
+st.markdown(f"""
+    <div style='text-align: center;'>
+        <img src="data:image/png;base64,{logo_claro_b64}" class="logo-light" style="height: 120px; margin-bottom: 20px;">
+        <img src="data:image/png;base64,{logo_oscuro_b64}" class="logo-dark" style="height: 120px; margin-bottom: 20px;">
+    </div>
+    <h1 style='text-align: center; color: #003366;'>Sistema Cotizador IGLOO</h1>
+    <p style='text-align: center;'>Control de rutas, costos, programación y simulación de utilidad</p>
+    <hr style='margin-top: 20px; margin-bottom: 30px;'>
+    <style>
+    @media (prefers-color-scheme: dark) {{
+        .logo-light {{ display: none; }}
+        .logo-dark {{ display: inline; }}
+    }}
+    @media (prefers-color-scheme: light) {{
+        .logo-light {{ display: inline; }}
+        .logo-dark {{ display: none; }}
+    }}
+    </style>
+""", unsafe_allow_html=True)
+
+st.info("Selecciona una opción desde el menú lateral para comenzar 🚀")
+
+# Instrucciones de navegación
+st.subheader("📂 Módulos disponibles")
+st.markdown("""
+- **🛣️ Captura de Rutas:** Ingreso de datos de nuevas rutas  
+- **🔍 Consulta Individual de Ruta:** Análisis detallado por registro  
+- **🔁 Simulador Vuelta Redonda:** Combinaciones IMPO + VACIO + EXPO   
+- **🗂️ Gestión de Rutas:** Editar y eliminar rutas existentes  
+""")
