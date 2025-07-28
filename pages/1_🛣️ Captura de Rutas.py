@@ -45,7 +45,7 @@ datos_generales = cargar_datos_generales()
 st.title("🛣️ Captura de Rutas - Lincoln")
 
 with st.expander("⚙️ General data", expanded=False):
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         datos_generales["Operator pay per mile"] = st.number_input("Operator pay per mile", value=datos_generales["Operator pay per mile"])
@@ -53,18 +53,19 @@ with st.expander("⚙️ General data", expanded=False):
         datos_generales["Team pay per mile"] = st.number_input("Team pay per mile", value=datos_generales["Team pay per mile"])
         datos_generales["Team pay per empty mile"] = st.number_input("Team pay per empty mile", value=datos_generales["Team pay per empty mile"])
         datos_generales["Operator bonus"] = st.number_input("Operator bonus", value=datos_generales["Operator bonus"])
+    with col2:
         datos_generales["Team bonus"] = st.number_input("Team bonus", value=datos_generales["Team bonus"])
         datos_generales["Truck performance"] = st.number_input("Truck performance", value=datos_generales["Truck performance"])
         datos_generales["Diesel"] = st.number_input("Diesel", value=datos_generales["Diesel"])
-
-    with col2:
         datos_generales["Fuel"] = st.number_input("Fuel", value=datos_generales["Fuel"])
         datos_generales["Dollar exchange rate"] = st.number_input("Dollar exchange rate", value=datos_generales["Dollar exchange rate"])
+    with col3:
         datos_generales["Loaded crossborder payment"] = st.number_input("Loaded crossborder payment", value=datos_generales["Loaded crossborder payment"])
         datos_generales["Empty crossborder payment"] = st.number_input("Empty crossborder payment", value=datos_generales["Empty crossborder payment"])
         datos_generales["Operator pay mex"] = st.number_input("Operator pay mex", value=datos_generales["Operator pay mex"])
         datos_generales["Team pay mex"] = st.number_input("Team pay mex", value=datos_generales["Team pay mex"])
         datos_generales["Operator bonus mex"] = st.number_input("Operator bonus mex", value=datos_generales["Operator bonus mex"])
+
 
 st.header("📝 Route Capture Form")
 
@@ -83,9 +84,9 @@ with st.form("formulario_ruta"):
         ingreso_milla = st.number_input("Income per mile", min_value=0.0)
         moneda_usa = st.selectbox("Currency USA", ["USD", "MXP"])
         ingreso_fuel_usa = datos_generales["Fuel"] * millas_usa
+        mexican_line = st.selectbox("Mexican Line", ["Propia", "Filial/Externa"])
 
     with col2:
-        mexican_line = st.selectbox("Mexican Line", ["Propia", "Filial/Externa"])
         origen_mex = st.text_input("Origin MEX")
         destino_mex = st.text_input("Destination MEX")
         millas_mex = st.number_input("Miles MEX", min_value=0.0)
