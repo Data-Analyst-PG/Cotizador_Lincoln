@@ -42,7 +42,7 @@ def guardar_datos_generales(data_dict):
 
 datos_generales = cargar_datos_generales()
 
-st.title("🛣️ Captura de Rutas - Lincoln")
+st.title("🛣️ Route Capture - Lincoln")
 
 with st.expander("⚙️ General data", expanded=False):
     col1, col2, col3 = st.columns(3)
