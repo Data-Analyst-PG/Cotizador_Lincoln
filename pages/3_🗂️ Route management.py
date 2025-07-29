@@ -7,7 +7,7 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-st.title("🗂️ Gestión de Rutas - Lincoln")
+st.title("🗂️ Route management - Lincoln")
 
 # --- CARGAR DATOS GENERALES ---
 @st.cache_data
@@ -24,28 +24,28 @@ data = supabase.table("Rutas_Lincoln").select("*").execute()
 df = pd.DataFrame(data.data)
 
 if df.empty:
-    st.warning("⚠️ No hay rutas registradas todavía.")
+    st.warning("⚠️ There are no registered routes yet.")
     st.stop()
 
 # --- VISUALIZAR TABLA ---
-st.subheader("📋 Rutas Registradas")
+st.subheader("📋 Registered Routes")
 st.dataframe(df, use_container_width=True)
-st.markdown(f"**Total de rutas registradas:** {len(df)}")
+st.markdown(f"**Total registered routes:** {len(df)}")
 
 # --- ELIMINAR RUTAS ---
 st.markdown("---")
-st.subheader("🗑️ Eliminar rutas")
-id_eliminar = st.multiselect("Selecciona los ID de ruta a eliminar", df["ID_Ruta"].tolist())
+st.subheader("🗑️ Delete routes")
+id_eliminar = st.multiselect("Select the route ID to delete", df["ID_Ruta"].tolist())
 if st.button("Eliminar rutas seleccionadas") and id_eliminar:
     for idr in id_eliminar:
         supabase.table("Rutas_Lincoln").delete().eq("ID_Ruta", idr).execute()
-    st.success("✅ Rutas eliminadas correctamente.")
+    st.success("✅ Routes successfully deleted.")
     st.experimental_rerun()
 
 # --- EDITAR RUTA ---
 st.markdown("---")
-st.subheader("✏️ Editar Ruta Existente")
-id_editar = st.selectbox("Selecciona el ID de ruta a editar", df["ID_Ruta"].tolist())
+st.subheader("✏️ Edit Existing Route")
+id_editar = st.selectbox("Select the route ID to edit", df["ID_Ruta"].tolist())
 
 if id_editar:
     ruta = df[df["ID_Ruta"] == id_editar].iloc[0].to_dict()
@@ -91,7 +91,7 @@ if id_editar:
                 extras[campo] = st.number_input(campo, min_value=0.0, value=float(ruta.get(campo, 0.0)), key=f"{campo}_edit")
 
         # --- GUARDAR ---
-        submit = st.form_submit_button("💾 Guardar cambios")
+        submit = st.form_submit_button("💾 Save changes")
         if submit:
             tc = datos_generales["Dollar exchange rate"]
             fuel_rate = datos_generales["Fuel"]
@@ -151,5 +151,5 @@ if id_editar:
                 "Net_margin": margen_neto
             })
             supabase.table("Rutas_Lincoln").update(ruta).eq("ID_Ruta", id_editar).execute()
-            st.success("✅ Ruta actualizada exitosamente.")
+            st.success("✅ Route updated successfully.")
             st.experimental_rerun()
