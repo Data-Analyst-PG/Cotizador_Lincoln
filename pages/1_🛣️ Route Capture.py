@@ -118,6 +118,20 @@ with st.form("formulario_ruta"):
         fuel_rate = datos_generales["Fuel"]
         diesel_rate = datos_generales["Diesel"]
         rendimiento = datos_generales["Truck performance"]
+        
+        #Extras
+        fianzas = extras["Fianzas"]
+        aditional_insurance = extras["Aditional Insurance"]
+        demoras = extras["Demoras/Detention"]
+        movimiento_extra = extras["Movimiento extraordinario"]
+        lumper_fees = extras["Lumper fees"]
+        maniobras = extras["Maniobras"]
+        loadlocks = extras["Loadlocks"]
+        layover = extras["Lay over"]
+        gatas = extras["Gatas"]
+        accessories = extras["Accessories"]
+        guias = extras["Guias"]
+
 
         # Income
         income_fuel_usa = fuel_rate * millas_usa
@@ -291,13 +305,13 @@ if st.session_state["mostrar_resumen"]:
             "Salary_Cruce": salary_cruce,
             "Fianzas": fianzas,
             "Aditional_Insurance": aditional_insurance,
-            "Demoras":, demoras,
+            "Demoras": demoras,
             "Movimiento_Extra": movimiento_extra,
             "Lumper_Fees": lumper_fees,
             "Maniobras": maniobras,
             "Loadlocks": loadlocks,
-            "Layover", layover,
-            "Gatas", gatas,
+            "Layover": layover,
+            "Gatas": gatas,
             "Accessories": accessories,
             "Guias": guias,
             "Extras_Total": extras_total,
@@ -311,6 +325,9 @@ if st.session_state["mostrar_resumen"]:
             "Salary_MEX": salary_mex,
             
         }
-        supabase.table("Rutas_Lincoln").insert(data_row).execute()
-        st.success(f"✅ Route saved with ID: {nuevo_id}")
-        st.session_state["mostrar_resumen"] = False
+        try:
+            supabase.table("Rutas_Lincoln").insert(data_row).execute()
+            st.success(f"✅ Route saved with ID: {nuevo_id}")
+            st.session_state["mostrar_resumen"] = False
+        except Exception as e:
+            st.error(f"❌ Error saving route: {e}")
