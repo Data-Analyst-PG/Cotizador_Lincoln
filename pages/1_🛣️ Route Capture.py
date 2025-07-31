@@ -253,9 +253,9 @@ if st.session_state["mostrar_resumen"]:
 
     # Generador de ID
     def generar_nuevo_id():
-        respuesta = supabase.table("Routes_Lincoln").select("ID_Ruta").order("ID_Ruta", desc=True).limit(1).execute()
+        respuesta = supabase.table("Routes_Lincoln").select("ID_Route").order("ID_Route", desc=True).limit(1).execute()
         if respuesta.data:
-            ultimo = respuesta.data[0]["ID_Ruta"]
+            ultimo = respuesta.data[0]["ID_Route"]
             numero = int(ultimo[2:]) + 1
         else:
             numero = 1
@@ -264,7 +264,7 @@ if st.session_state["mostrar_resumen"]:
     if st.button("✅ Save route"):
         nuevo_id = generar_nuevo_id()
         data_row = {
-            "ID_Ruta": nuevo_id,
+            "ID_Route": nuevo_id,
             "Date": str(fecha),
             "Type_of_trip": tipo_viaje,
             "Customer": cliente,
