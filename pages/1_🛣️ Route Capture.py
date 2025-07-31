@@ -65,7 +65,10 @@ with st.expander("⚙️ General data", expanded=False):
         datos_generales["Operator pay mex"] = st.number_input("Operator pay mex", value=datos_generales["Operator pay mex"])
         datos_generales["Team pay mex"] = st.number_input("Team pay mex", value=datos_generales["Team pay mex"])
         datos_generales["Operator bonus mex"] = st.number_input("Operator bonus mex", value=datos_generales["Operator bonus mex"])
-
+     
+    if st.button("💾 Guardar configuración"):
+        guardar_datos_generales(datos_generales)
+        st.success("✅ Configuración general guardada correctamente.")
 
 st.header("📝 Route Capture Form")
 
