@@ -19,21 +19,21 @@ def cargar_datos_generales():
         return pd.read_csv("datos_generales.csv").iloc[0].to_dict()
     except:
         return {
-            "Operator pay per mile": 0.0,
-            "Operator pay per empty mile": 0.0,
-            "Team pay per mile": 0.0,
-            "Team pay per empty mile": 0.0,
-            "Operator bonus": 0.0,
-            "Team bonus": 0.0,
-            "Truck performance": 2.5,
-            "Diesel": 24.0,
-            "Fuel": 1.0,
+            "Operator pay per mile": 0.38,
+            "Operator pay per empty mile": 0.30,
+            "Team pay per mile": 0.30,
+            "Team pay per empty mile": 0.25,
+            "Operator bonus": 50.0,
+            "Team bonus": 30.0,
+            "Truck performance": 7.3,
+            "Diesel": 3.0,
+            "Fuel": 0.60,
             "Dollar exchange rate": 18.0,
-            "Loaded crossborder payment": 300.0,
-            "Empty crossborder payment": 200.0,
-            "Operator pay mex": 1000.0,
-            "Team pay mex": 900.0,
-            "Operator bonus mex": 400.0
+            "Loaded crossborder payment": 50.0,
+            "Empty crossborder payment": 5.0,
+            "Operator pay mex": 200.0,
+            "Team pay mex": 150.0,
+            "Operator bonus mex": 50.0
         }
 
 def guardar_datos_generales(data_dict):
@@ -159,15 +159,15 @@ with st.form("formulario_ruta"):
         # Diesel
         diesel_usa = (millas_usa / rendimiento) * diesel_rate
         diesel_mex = (millas_mex / rendimiento) * diesel_rate if mexican_line == "Propia" else 0
-        charge_fuel_usa = fuel_rate * millas_usa
 
         # Extras
         extras_total = sum(extras.values())
 
         # Charges
+        charge_fuel_usa = fuel_rate * millas_usa
         charges_usa = salary_usa + diesel_usa + charge_fuel_usa
         charges_mex = salary_mex + diesel_mex if mexican_line == "Propia" else cargo_mex
-        cargo_cruce_final = cargo_cruce if moneda_cargo_cruce == "USD" else cargo_cruce / tc
+        cargo_cruce_final = salary_cruce + cargo_cruce if moneda_cargo_cruce == "USD" else cargo_cruce / tc
 
         total_charges = charges_usa + charges_mex + extras_total + cargo_cruce_final
         total_income = income_usa + income_mex_total + income_cruce_total
@@ -236,12 +236,13 @@ if st.session_state["mostrar_resumen"]:
 
     # Generador de ID
     def generar_nuevo_id():
-        data = supabase.table("Rutas_Lincoln").select("ID_Ruta").order("ID_Ruta", desc=True).limit(1).execute()
-        if data.data:
-            last_id = data.data[0]["ID_Ruta"]
-            num = int(last_id.replace("LIN", ""))
-            return f"LIN{num+1:06d}"
-        return "LIN000001"
+        respuesta = supabase.table("Routes_Lincoln").select("ID_Ruta").order("ID_Ruta", desc=True).limit(1).execute()
+        if respuesta.data:
+            ultimo = respuesta.data[0]["ID_Ruta"]
+            numero = int(ultimo[2:]) + 1
+        else:
+            numero = 1
+        return f"LF{numero:06d}"
 
     if st.button("✅ Save route"):
         nuevo_id = generar_nuevo_id()
@@ -276,13 +277,39 @@ if st.session_state["mostrar_resumen"]:
             "Pay_KM_USA": r["pay_km"],
             "Pay_KM_empty_USA": r["pay_km_empty"],
             "Pay_MEX": r["pay_mex"],
-            "Income_total": r["total_income"],
+            "Income_Total": r["total_income"],
             "Charges_total": r["total_charges"],
             "Gross_profit": r["utilidad_bruta"],
             "Net_profit": r["utilidad_neta"],
             "Gross_margin": r["porcentaje_bruta"],
             "Net_margin": r["porcentaje_neta"],
-            **extras
+            "Income_Fuel_USA": income_fuel_usa,
+            "Charge_Fuel_USA": charge_fuel_usa,
+            "Diesel_USA": diesel_usa,
+            "Salary_USA": salary_usa,
+            "Diesel_MEX": diesel_mex,
+            "Salary_Cruce": salary_cruce,
+            "Fianzas": fianzas,
+            "Aditional_Insurance": aditional_insurance,
+            "Demoras":, demoras,
+            "Movimiento_Extra": movimiento_extra,
+            "Lumper_Fees": lumper_fees,
+            "Maniobras": maniobras,
+            "Loadlocks": loadlocks,
+            "Layover", layover,
+            "Gatas", gatas,
+            "Accessories": accessories,
+            "Guias": guias,
+            "Extras_Total": extras_total,
+            "Income_USA": income_usa,
+            "Income_MEX_Total": income_mex_total,
+            "Income_Cruce_Total": income_cruce_total,
+            "Charges_USA": charges_usa,
+            "Crossborder_Charge_Total": cargo_cruce_final,
+            "Indirect_Costs": r['costos_indirectos'],
+            "Charge_MEX_Total": charge_mex,
+            "Salary_MEX": salary_mex,
+            
         }
         supabase.table("Rutas_Lincoln").insert(data_row).execute()
         st.success(f"✅ Route saved with ID: {nuevo_id}")
