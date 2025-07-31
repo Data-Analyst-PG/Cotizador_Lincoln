@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client
+import traceback
 
 if "mostrar_resumen" not in st.session_state:
     st.session_state["mostrar_resumen"] = False
@@ -329,8 +330,25 @@ if st.session_state["mostrar_resumen"]:
             
         }
         try:
-            supabase.table("Rutas_Lincoln").insert(data_row).execute()
-            st.success(f"✅ Route saved with ID: {nuevo_id}")
-            st.session_state["mostrar_resumen"] = False
+            # Validación de campos vacíos o no válidos
+            for key, val in data_row.items():
+                if val is None:
+                    st.warning(f"⚠️ El campo '{key}' tiene valor None. Revisa este dato.")
+                elif isinstance(val, float) and pd.isna(val):
+                    st.warning(f"⚠️ El campo '{key}' tiene valor NaN. Revisa este dato.")
+    
+            # Intento de inserción
+            respuesta = supabase.table("Rutas_Lincoln").insert(data_row).execute()
+    
+            # Validación del resultado
+            if hasattr(respuesta, "status_code") and respuesta.status_code >= 400:
+                st.error(f"❌ Error en la respuesta de Supabase: {respuesta.status_code} - {respuesta.data}")
+            else:
+                st.success(f"✅ Route saved with ID: {nuevo_id}")
+                st.session_state["mostrar_resumen"] = False
+
         except Exception as e:
-            st.error(f"❌ Error saving route: {e}")
+            st.error("❌ Ocurrió un error al intentar guardar la ruta.")
+            st.exception(e)
+            st.text(traceback.format_exc())  # Esto imprime la traza completa del error
+
