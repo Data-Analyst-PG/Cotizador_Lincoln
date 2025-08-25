@@ -197,7 +197,7 @@ with st.form("formulario_ruta"):
 
         # Al final guarda resultados
         st.session_state["mostrar_resumen"] = True
-        st.session_state["resultados_calculo"] = {
+        st.session_state["resultados_calculo"].update({
             "income_usa": income_usa,
             "income_mex": income_mex_total,
             "income_cruce": income_cruce_total,
@@ -226,7 +226,18 @@ with st.form("formulario_ruta"):
             "tc": tc,
             "income_fuel_usa": income_fuel_usa,
             "cargo_mex": cargo_mex,
-        }
+            "fianzas": fianzas,
+            "aditional_insurance": aditional_insurance,
+            "demoras": demoras,
+            "movimiento_extra": movimiento_extra,
+            "lumper_fees": lumper_fees,
+            "maniobras": maniobras,
+            "loadlocks": loadlocks,
+            "layover": layover,
+            "gatas": gatas,
+            "accessories": accessories,
+            "guias": guias,
+        })
 
         
 # --- Mostrar resumen si ya se revisó ---
@@ -269,6 +280,7 @@ if st.session_state["mostrar_resumen"]:
         return f"LF{numero:06d}"
 
     if st.button("✅ Save route"):
+        r = st.session_state["resultados_calculo"]
         nuevo_id = generar_nuevo_id()
         data_row = {
             "ID_Route": nuevo_id,
