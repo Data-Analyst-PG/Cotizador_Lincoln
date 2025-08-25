@@ -325,17 +325,17 @@ if st.session_state["mostrar_resumen"]:
             "Salary_USA": r["salary_usa"],
             "Diesel_MEX": r["diesel_mex"],
             "Salary_Cruce": r["salary_cruce"],
-            "Fianzas": fianzas,
-            "Aditional_Insurance": aditional_insurance,
-            "Demoras": demoras,
-            "Movimiento_Extra": movimiento_extra,
-            "Lumper_Fees": lumper_fees,
-            "Maniobras": maniobras,
-            "Loadlocks": loadlocks,
-            "Layover": layover,
-            "Gatas": gatas,
-            "Accessories": accessories,
-            "Guias": guias,
+            "Fianzas": r["fianzas"],
+            "Aditional_Insurance": r["aditional_insurance"],
+            "Demoras": r["demoras"],
+            "Movimiento_Extra": r["movimiento_extra"],
+            "Lumper_Fees": r["lumper_fees"],
+            "Maniobras": r["maniobras"],
+            "Loadlocks": r["loadlocks"],
+            "Layover": r["layover"],
+            "Gatas": r["gatas"],
+            "Accessories": r["accessories"],
+            "Guias": r["guias"],
             "Extras_Total": r["extras_total"],
             "Income_USA": r["income_usa"],
             "Income_MEX_Total": r["income_mex"],
@@ -355,7 +355,7 @@ if st.session_state["mostrar_resumen"]:
                     st.warning(f"⚠️ El campo '{key}' tiene valor NaN. Revisa este dato.")
     
             # Intento de inserción
-            respuesta = supabase.table("Rutas_Lincoln").insert(data_row).execute()
+            respuesta = supabase.table("Routes_Lincoln").insert(data_row).execute()
     
             # Validación del resultado
             if hasattr(respuesta, "status_code") and respuesta.status_code >= 400:
