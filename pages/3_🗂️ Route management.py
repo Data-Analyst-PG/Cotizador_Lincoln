@@ -93,63 +93,147 @@ if id_editar:
         # --- GUARDAR ---
         submit = st.form_submit_button("💾 Save changes")
         if submit:
-            tc = datos_generales["Dollar exchange rate"]
-            fuel_rate = datos_generales["Fuel"]
-            diesel_rate = datos_generales["Diesel"]
-            rendimiento = datos_generales["Truck performance"]
+        # --- SETTINGS / DATOS GENERALES ---
+        tc = float(datos_generales["Dollar exchange rate"])
+        fuel_rate = float(datos_generales["Fuel"])
+        diesel_rate = float(datos_generales["Diesel"])
+        rendimiento = float(datos_generales["Truck performance"])
 
-            miles_usa = ruta["Miles_USA"]
-            miles_empty = ruta["Miles_Empty"]
-            if ruta["Trip_mode"] == "Operator":
-                salary_usa = miles_usa * datos_generales["Operator pay per mile"] + \
-                             miles_empty * datos_generales["Operator pay per empty mile"] + \
-                             datos_generales["Operator bonus"]
-                salary_mex = datos_generales["Operator pay mex"] + datos_generales["Operator bonus mex"]
-            else:
-                salary_usa = (miles_usa * datos_generales["Team pay per mile"] + \
-                             miles_empty * datos_generales["Team pay per empty mile"]) * 2 + \
-                             datos_generales["Team bonus"] * 2
-                salary_mex = datos_generales["Team pay mex"] * 2 + datos_generales["Operator bonus mex"] * 2
-            if ruta["Mexican_Line"] != "Propia":
-                salary_mex = 0
-            salary_cruce = datos_generales["Loaded crossborder payment"] if ruta["Load_type_crossborder"] == "Loaded" else datos_generales["Empty crossborder payment"]
-            if ruta["Type_of_crossborder"] != "Propio":
-                salary_cruce = 0
+        # --- ENTRADAS BASE ---
+        miles_usa = float(ruta["Miles_USA"])
+        miles_empty = float(ruta["Miles_Empty"])
+        miles_mex = float(ruta["Miles_MEX"])
 
-            income_fuel_usa = fuel_rate * miles_usa
-            income_usa = ruta["Income_per_mile"] * miles_usa
-            if ruta["Currency_USA"] == "MXP":
-                income_usa *= tc
-            income_usa += income_fuel_usa
+        # --- SALARIOS (USA / MEX / CRUCE) ---
+        if ruta["Trip_mode"] == "Operator":
+            salary_usa = (
+                miles_usa * float(datos_generales["Operator pay per mile"])
+                + miles_empty * float(datos_generales["Operator pay per empty mile"])
+                + float(datos_generales["Operator bonus"])
+            )
+            salary_mex = (
+                float(datos_generales["Operator pay mex"])
+                + float(datos_generales["Operator bonus mex"])
+            )
+        else:  # Team
+            salary_usa = (
+                miles_usa * float(datos_generales["Team pay per mile"])
+                + miles_empty * float(datos_generales["Team pay per empty mile"])
+            ) * 2 + float(datos_generales["Team bonus"]) * 2
+            salary_mex = float(datos_generales["Team pay mex"]) * 2 + float(datos_generales["Operator bonus mex"]) * 2
 
-            income_mex = ruta["Income_MEX"] if ruta["Currency_MEX"] == "USD" else ruta["Income_MEX"] / tc
-            income_cruce = ruta["Crossborder_income"] if ruta["Currency_Crossborder"] == "USD" else ruta["Crossborder_income"] / tc
-            diesel_usa = (miles_usa / rendimiento) * diesel_rate
-            diesel_mex = (ruta["Miles_MEX"] / rendimiento) * diesel_rate if ruta["Mexican_Line"] == "Propia" else 0
-            charge_fuel_usa = fuel_rate * miles_usa
-            extras_total = sum(extras.values())
-            charges_usa = salary_usa + diesel_usa + charge_fuel_usa
-            charges_mex = salary_mex + diesel_mex if ruta["Mexican_Line"] == "Propia" else ruta["Charge_MEX"]
-            charge_cruce = ruta["Crossborder_charge"] if ruta["Currency_Crossborder_charge"] == "USD" else ruta["Crossborder_charge"] / tc
+        # Si la línea MEX no es propia, el salario MEX no aplica
+        if ruta["Mexican_Line"] != "Propia":
+        salary_mex = 0.0
 
-            total_charges = charges_usa + charges_mex + extras_total + charge_cruce
-            total_income = income_usa + income_mex + income_cruce
-            utilidad_bruta = total_income - total_charges
-            margen_bruto = utilidad_bruta / total_income if total_income > 0 else 0
-            costos_indirectos = total_income * 0.35
-            utilidad_neta = utilidad_bruta - costos_indirectos
-            margen_neto = utilidad_neta / total_income if total_income > 0 else 0
+        # Pago de cruce (solo si cruce propio)
+        salary_cruce = float(datos_generales["Loaded crossborder payment"]) if ruta["Load_type_crossborder"] == "Loaded" else float(datos_generales["Empty crossborder payment"])
+        if ruta["Type_of_crossborder"] != "Propio":
+            salary_cruce = 0.0
 
-            # Actualizar en Supabase
-            ruta.update(extras)
-            ruta.update({
-                "Income_total": total_income,
-                "Charges_total": total_charges,
-                "Gross_profit": utilidad_bruta,
-                "Net_profit": utilidad_neta,
-                "Gross_margin": margen_bruto,
-                "Net_margin": margen_neto
-            })
-            supabase.table("Routes_Lincoln").update(ruta).eq("ID_Route", id_editar).execute()
-            st.success("✅ Route updated successfully.")
-            st.experimental_rerun()
+        # --- INGRESOS ---
+        # Ingreso x milla USA en USD (si viene en MXP, dividir por tc)
+        income_base_usa = float(ruta["Income_per_mile"]) * miles_usa
+        if ruta["Currency_USA"] == "MXP":
+            income_base_usa = income_base_usa / tc
+
+        # Fuel surcharge (ingreso). Normalmente en USD por settings.
+        income_fuel_usa = fuel_rate * miles_usa
+
+        income_usa = income_base_usa + income_fuel_usa
+
+        # Income MEX (a USD)
+        income_mex = float(ruta["Income_MEX"])
+        if ruta["Currency_MEX"] == "MXP":
+            income_mex = income_mex / tc
+
+        # Income cruce (a USD)
+        income_cruce = float(ruta["Crossborder_income"])
+        if ruta["Currency_Crossborder"] == "MXP":
+            income_cruce = income_cruce / tc
+
+        # --- CARGOS / COSTOS ---
+        # Diesel (gasto real) en USD
+        diesel_usa = (miles_usa / rendimiento) * diesel_rate
+        diesel_mex = (miles_mex / rendimiento) * diesel_rate if ruta["Mexican_Line"] == "Propia" else 0.0
+
+        # Fuel como cargo (solo si en tu Captura también existe como gasto espejo).
+        # Si NO lo usas como gasto en Captura, pon 0.0 aquí para evitar desalinear.
+        charge_fuel_usa = 0.0  # <- AJUSTA A 0.0 o = fuel_rate * miles_usa, según tu Captura
+
+        # Cargo MEX (cuando línea no es propia), convertir a USD si viene en MXP.
+        cargo_mex = float(ruta["Charge_MEX"])
+        # Si de momento no tienes selector específico de moneda para cargo MEX,
+        # puedes reutilizar temporalmente Currency_MEX (mejor: agrega Currency_MEX_charge).
+        if ruta["Mexican_Line"] != "Propia":
+            if ruta["Currency_MEX"] == "MXP":
+                cargo_mex = cargo_mex / tc
+            charges_mex = cargo_mex
+        else:
+            charges_mex = salary_mex + diesel_mex
+
+        # Cargo de cruce (a USD)
+        charge_cruce = float(ruta["Crossborder_charge"])
+        if ruta["Currency_Crossborder_charge"] == "MXP":
+            charge_cruce = charge_cruce / tc
+
+        # Extras
+        extras_total = float(sum(extras.values()))
+
+        # Charges USA
+        charges_usa = salary_usa + diesel_usa + charge_fuel_usa + salary_cruce
+
+        # Totales
+        total_charges = charges_usa + charges_mex + extras_total + charge_cruce
+        total_income = income_usa + income_mex + income_cruce
+        utilidad_bruta = total_income - total_charges
+        margen_bruto = (utilidad_bruta / total_income) if total_income > 0 else 0.0
+        costos_indirectos = total_income * 0.35
+        utilidad_neta = utilidad_bruta - costos_indirectos
+        margen_neto = (utilidad_neta / total_income) if total_income > 0 else 0.0
+
+        # --- PREPARAR PAYLOAD PARA DB ---
+        # Serializa la fecha a ISO (YYYY-MM-DD) para evitar problemas de tipos
+        fecha_iso = None
+        try:
+            fecha_iso = pd.to_datetime(ruta["Date"]).date().isoformat()
+        except Exception:
+            fecha_iso = str(ruta["Date"])
+
+        ruta.update(extras)
+        ruta.update({
+            "Date": fecha_iso,
+
+            # Totales (usa exactamente los mismos nombres/case que tu tabla)
+            "Income_Total": total_income,
+            "Charges_Total": total_charges,
+            "Gross_profit": utilidad_bruta,
+            "Net_profit": utilidad_neta,
+            "Gross_margin": margen_bruto,
+            "Net_margin": margen_neto,
+
+            # (Opcional) Desgloses útiles para auditoría/coherencia con Captura:
+            "Income_USA": income_usa,
+            "Income_MEX_Total": income_mex,
+            "Income_Cruce_Total": income_cruce,
+            "Income_Fuel_USA": income_fuel_usa,
+
+            "Charges_USA": charges_usa,
+            "Diesel_USA": diesel_usa,
+            "Diesel_MEX": diesel_mex,
+            "Charge_Fuel_USA": charge_fuel_usa,
+            "Salary_USA": salary_usa,
+            "Salary_MEX": salary_mex,
+            "Salary_Cruce": salary_cruce,
+
+            "Charge_MEX_Total": charges_mex if ruta["Mexican_Line"] == "Propia" else cargo_mex,
+            "Crossborder_Charge_Total": charge_cruce,
+            "Extras_Total": extras_total,
+            "Indirect_Costs": costos_indirectos,
+        })
+
+        # --- UPDATE DB ---
+        supabase.table("Routes_Lincoln").update(ruta).eq("ID_Route", id_editar).execute()
+        st.success("✅ Route updated successfully.")
+        st.experimental_rerun()
+
