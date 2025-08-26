@@ -124,7 +124,7 @@ if id_editar:
 
             # Si la línea MEX no es propia, el salario MEX no aplica
             if ruta["Mexican_Line"] != "Propia":
-            salary_mex = 0.0
+                salary_mex = 0.0
 
             # Pago de cruce (solo si cruce propio)
             salary_cruce = float(datos_generales["Loaded crossborder payment"]) if ruta["Load_type_crossborder"] == "Loaded" else float(datos_generales["Empty crossborder payment"])
