@@ -35,20 +35,20 @@ st.markdown(f"**Total registered routes:** {len(df)}")
 # --- ELIMINAR RUTAS ---
 st.markdown("---")
 st.subheader("🗑️ Delete routes")
-id_eliminar = st.multiselect("Select the route ID to delete", df["ID_Ruta"].tolist())
+id_eliminar = st.multiselect("Select the route ID to delete", df["ID_Route"].tolist())
 if st.button("Eliminar rutas seleccionadas") and id_eliminar:
     for idr in id_eliminar:
-        supabase.table("Routes_Lincoln").delete().eq("ID_Ruta", idr).execute()
+        supabase.table("Routes_Lincoln").delete().eq("ID_Route", idr).execute()
     st.success("✅ Routes successfully deleted.")
     st.experimental_rerun()
 
 # --- EDITAR RUTA ---
 st.markdown("---")
 st.subheader("✏️ Edit Existing Route")
-id_editar = st.selectbox("Select the route ID to edit", df["ID_Ruta"].tolist())
+id_editar = st.selectbox("Select the route ID to edit", df["ID_Route"].tolist())
 
 if id_editar:
-    ruta = df[df["ID_Ruta"] == id_editar].iloc[0].to_dict()
+    ruta = df[df["ID_Route"] == id_editar].iloc[0].to_dict()
     with st.form("form_editar"):
         col1, col2 = st.columns(2)
         with col1:
@@ -150,6 +150,6 @@ if id_editar:
                 "Gross_margin": margen_bruto,
                 "Net_margin": margen_neto
             })
-            supabase.table("Routes_Lincoln").update(ruta).eq("ID_Ruta", id_editar).execute()
+            supabase.table("Routes_Lincoln").update(ruta).eq("ID_Route", id_editar).execute()
             st.success("✅ Route updated successfully.")
             st.experimental_rerun()
