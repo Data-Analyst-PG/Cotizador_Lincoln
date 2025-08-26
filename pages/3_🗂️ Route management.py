@@ -20,7 +20,7 @@ def cargar_datos_generales():
 datos_generales = cargar_datos_generales()
 
 # --- CARGAR RUTAS ---
-data = supabase.table("Rutas_Lincoln").select("*").execute()
+data = supabase.table("Routes_Lincoln").select("*").execute()
 df = pd.DataFrame(data.data)
 
 if df.empty:
@@ -38,7 +38,7 @@ st.subheader("🗑️ Delete routes")
 id_eliminar = st.multiselect("Select the route ID to delete", df["ID_Ruta"].tolist())
 if st.button("Eliminar rutas seleccionadas") and id_eliminar:
     for idr in id_eliminar:
-        supabase.table("Rutas_Lincoln").delete().eq("ID_Ruta", idr).execute()
+        supabase.table("Routes_Lincoln").delete().eq("ID_Ruta", idr).execute()
     st.success("✅ Routes successfully deleted.")
     st.experimental_rerun()
 
@@ -150,6 +150,6 @@ if id_editar:
                 "Gross_margin": margen_bruto,
                 "Net_margin": margen_neto
             })
-            supabase.table("Rutas_Lincoln").update(ruta).eq("ID_Ruta", id_editar).execute()
+            supabase.table("Routes_Lincoln").update(ruta).eq("ID_Ruta", id_editar).execute()
             st.success("✅ Route updated successfully.")
             st.experimental_rerun()
