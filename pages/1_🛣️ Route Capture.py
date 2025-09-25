@@ -175,7 +175,7 @@ with st.form("formulario_ruta"):
         total_salary = salary_usa + salary_mex + salary_cruce
 
         # Diesel
-        diesel_usa = (millas_usa / rendimiento) * diesel_rate
+        diesel_usa = ((millas_usa / rendimiento) * diesel_rate) + ((millas_vacias / rendimiento) * diesel_rate))
         diesel_mex = (millas_mex / rendimiento) * diesel_rate if mexican_line == "Propia" else 0
 
         # Extras
